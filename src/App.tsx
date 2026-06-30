@@ -8,16 +8,18 @@ import { RollScreen } from './components/RollScreen'
 import { CollectionScreen } from './components/CollectionScreen'
 import { MergeScreen } from './components/MergeScreen'
 import { BattleScreen } from './components/BattleScreen'
+import { MoveShopScreen } from './components/MoveShopScreen'
 import { useGameSync } from './hooks/useGameSync'
 import { useFitDexStore } from './store/useFitDexStore'
 
-type Tab = 'home' | 'workout' | 'roll' | 'collection' | 'merge' | 'battle'
+type Tab = 'home' | 'workout' | 'roll' | 'collection' | 'merge' | 'battle' | 'shop'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'home', label: 'Home', icon: '🏠' },
   { id: 'workout', label: 'Workout', icon: '🏋️' },
   { id: 'roll', label: 'Roll', icon: '🎲' },
   { id: 'collection', label: 'Dex', icon: '📖' },
+  { id: 'shop', label: 'Shop', icon: '🛒' },
   { id: 'merge', label: 'Merge', icon: '🔮' },
   { id: 'battle', label: 'Battle', icon: '⚔️' },
 ]
@@ -45,6 +47,7 @@ function AppGate() {
 function MainApp({ requireAuth }: { requireAuth: boolean }) {
   const [tab, setTab] = useState<Tab>('home')
   const pendingRolls = useFitDexStore((s) => s.pendingRolls)
+  const movePoints = useFitDexStore((s) => s.profile.movePoints)
   const resetGame = useFitDexStore((s) => s.resetGame)
   const { syncStatus, syncError } = useGameSync()
 
@@ -56,6 +59,7 @@ function MainApp({ requireAuth }: { requireAuth: boolean }) {
       case 'collection': return <CollectionScreen />
       case 'merge': return <MergeScreen />
       case 'battle': return <BattleScreen />
+      case 'shop': return <MoveShopScreen />
     }
   }
 
@@ -79,6 +83,11 @@ function MainApp({ requireAuth }: { requireAuth: boolean }) {
             {pendingRolls > 0 && (
               <div className="px-3 py-1.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-sm font-bold animate-pulse">
                 {pendingRolls} roll{pendingRolls !== 1 ? 's' : ''}
+              </div>
+            )}
+            {movePoints > 0 && (
+              <div className="px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-sm font-bold">
+                {movePoints} pts
               </div>
             )}
             {requireAuth && <AccountMenu />}

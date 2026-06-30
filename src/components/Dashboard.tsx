@@ -8,6 +8,7 @@ export function Dashboard() {
   const workouts = useFitDexStore((s) => s.workouts)
   const collection = useFitDexStore((s) => s.collection)
   const pendingRolls = useFitDexStore((s) => s.pendingRolls)
+  const movePoints = useFitDexStore((s) => s.profile.movePoints)
 
   const topMonsters = [...collection]
     .sort((a, b) => {
@@ -30,11 +31,12 @@ export function Dashboard() {
             Train hard. Roll monsters. Battle champions.
           </p>
         </div>
-        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+        <div className="relative grid grid-cols-2 sm:grid-cols-5 gap-4 mt-8">
           <StatBox label="Workouts" value={profile.totalWorkouts} icon="🏋️" />
           <StatBox label="Rolls Used" value={profile.totalRolls} icon="🎲" />
           <StatBox label="Monsters" value={collection.length} icon="👾" />
           <StatBox label="Pending Rolls" value={pendingRolls} icon="✨" highlight />
+          <StatBox label="Move Points" value={movePoints} icon="⚡" highlight />
         </div>
       </div>
 
@@ -75,7 +77,8 @@ export function Dashboard() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-cyan-400 font-bold">+{w.rollsEarned} 🎲</div>
+                    <div className="text-cyan-400 font-bold">+{w.rollsEarned} rolls</div>
+                    <div className="text-amber-400 text-xs font-semibold">+{w.pointsEarned ?? 0} pts</div>
                     <div className="text-xs text-slate-500">{formatRelativeTime(w.completedAt)}</div>
                   </div>
                 </div>

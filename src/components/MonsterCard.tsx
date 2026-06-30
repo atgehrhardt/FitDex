@@ -1,5 +1,6 @@
 import type { ElementType, Monster, Rarity } from '../types'
 import { ELEMENT_COLORS, RARITY_COLORS } from '../types'
+import { MonsterSprite } from './MonsterSprite'
 
 interface MonsterCardProps {
   monster: Monster
@@ -28,12 +29,12 @@ export function MonsterCard({ monster, selected, compact, onClick, showHp }: Mon
       }}
     >
       <div className="flex items-start gap-3">
-        <div
-          className={`${compact ? 'text-3xl' : 'text-5xl'} animate-float shrink-0`}
-          style={{ filter: `drop-shadow(0 0 8px ${ELEMENT_COLORS[monster.element]}66)` }}
-        >
-          {monster.emoji}
-        </div>
+        <MonsterSprite
+          speciesId={monster.id}
+          element={monster.element}
+          size={compact ? 'sm' : 'md'}
+          className="shrink-0"
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className={`font-bold text-white truncate ${compact ? 'text-sm' : 'text-lg'}`}>
