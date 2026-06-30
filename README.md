@@ -22,6 +22,21 @@ npm run dev
 
 Open http://localhost:5173 in your browser.
 
+## Live Demo (GitHub Pages)
+
+After merging to `main`, the app deploys automatically via GitHub Actions to:
+
+**https://atgehrhardt.github.io/FitDex/**
+
+### One-time repo setup
+
+1. Go to **Settings → Pages** in the GitHub repo
+2. Under **Build and deployment**, set **Source** to **GitHub Actions**
+3. Merge this PR to `main` (or push to `main`) — the workflow builds and deploys on every push
+4. You can also trigger a deploy manually from the **Actions** tab → **Deploy to GitHub Pages** → **Run workflow**
+
+Uses GitHub-hosted runners (free for public repos) — no self-hosted runner required.
+
 ## How It Works
 
 | Workout Type | Rolls Formula |
