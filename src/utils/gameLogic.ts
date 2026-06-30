@@ -1,6 +1,7 @@
-import type { ElementType, Monster, MonsterSpecies, Rarity, Stats, Workout, WorkoutType } from '../types'
-import { MAX_LEVEL } from '../types'
+import type { ElementType, Monster, MonsterSpecies, Move, Rarity, Stats, Workout, WorkoutType } from '../types'
+import { BASIC_ATTACK_ID, MAX_EQUIPPED_MOVES, MAX_LEVEL } from '../types'
 import { MONSTER_SPECIES, RARITY_WEIGHTS, TYPE_CHART } from '../data/monsters'
+import { BASIC_ATTACK, canSpeciesLearn, getMoveById, getMovesForSpecies } from '../data/moves'
 
 const RARITY_MULTIPLIER: Record<Rarity, number> = {
   common: 1,
@@ -26,7 +27,14 @@ export function calculateStats(species: MonsterSpecies, level: number): Stats {
   }
 }
 
-export function createMonster(species: MonsterSpecies, level = 1): Monster {
+export function normalizeMonster(monster: Monster): Monster {
+  return {
+    ...monster,
+    equippedMoveIds: monster.equippedMoveIds ?? [],
+  }
+}
+
+export function createMonster(species: MonsterSpecies, level = 1, equippedMoveIds: string[] = []): Monster {
   const stats = calculateStats(species, level)
   return {
     ...species,
@@ -35,6 +43,7 @@ export function createMonster(species: MonsterSpecies, level = 1): Monster {
     stats,
     currentHp: stats.hp,
     acquiredAt: Date.now(),
+    equippedMoveIds: equippedMoveIds.slice(0, MAX_EQUIPPED_MOVES),
   }
 }
 
@@ -65,6 +74,15 @@ export function calculateRolls(
 
   const intensityBonus = Math.floor(intensity / 2)
   return base + intensityBonus
+}
+
+export function calculateMovePoints(
+  type: WorkoutType,
+  durationMinutes: number,
+  intensity: number,
+): number {
+  const typeBonus = type === 'strength' ? 5 : type === 'hiit' ? 4 : 0
+  return Math.max(5, durationMinutes + intensity * 3 + typeBonus)
 }
 
 export function rollRarity(intensity: number, bonusWeight = 0): Rarity {
@@ -102,16 +120,30 @@ export function getTypeMultiplier(attacker: ElementType, defender: ElementType):
   return 1
 }
 
+export function getEffectivenessLabel(multiplier: number): string | null {
+  if (multiplier >= 1.5) return "It's super effective!"
+  if (multiplier <= 0.67) return "It's not very effective..."
+  return null
+}
+
+export function resolveMove(moveId: string, attackerElement: ElementType): Move {
+  if (moveId === BASIC_ATTACK_ID) {
+    return { ...BASIC_ATTACK, element: attackerElement }
+  }
+  return getMoveById(moveId) ?? { ...BASIC_ATTACK, element: attackerElement }
+}
+
 export function calculateDamage(
   attacker: Monster,
   defender: Monster,
-  movePower = 1,
+  move: Move,
   defending = false,
-): number {
-  const typeMult = getTypeMultiplier(attacker.element, defender.element)
+): { damage: number; effectiveness: number; label: string | null } {
+  const typeMult = getTypeMultiplier(move.element, defender.element)
   const defMult = defending ? 1.5 : 1
-  const raw = (attacker.stats.atk * movePower * typeMult) / (defender.stats.def * defMult * 0.5)
-  return Math.max(1, Math.round(raw))
+  const raw = (attacker.stats.atk * move.power * typeMult) / (defender.stats.def * defMult * 0.5)
+  const damage = Math.max(1, Math.round(raw))
+  return { damage, effectiveness: typeMult, label: getEffectivenessLabel(typeMult) }
 }
 
 export function healMonster(monster: Monster): Monster {
@@ -164,7 +196,8 @@ export function mergeMonsters(monsters: Monster[]): Monster | null {
   const toMerge = monsters.slice(0, 3)
   if (!toMerge.every((m) => isDuplicate(m, first))) return null
 
-  return createMonster(species, first.level + 1)
+  const merged = createMonster(species, first.level + 1, first.equippedMoveIds ?? [])
+  return merged
 }
 
 export function createWorkout(
@@ -175,6 +208,7 @@ export function createWorkout(
   notes?: string,
 ): Workout {
   const rollsEarned = calculateRolls(type, durationMinutes, intensity)
+  const pointsEarned = calculateMovePoints(type, durationMinutes, intensity)
   return {
     id: generateId(),
     type,
@@ -184,7 +218,16 @@ export function createWorkout(
     notes,
     completedAt: Date.now(),
     rollsEarned,
+    pointsEarned,
   }
+}
+
+function randomEnemyMoves(speciesId: string): string[] {
+  const learnable = getMovesForSpecies(speciesId)
+  if (learnable.length === 0) return []
+  const count = Math.min(learnable.length, Math.floor(Math.random() * 3))
+  const shuffled = [...learnable].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, count).map((m) => m.id)
 }
 
 export function generateWildMonster(playerLevel: number): Monster {
@@ -197,6 +240,7 @@ export function generateWildMonster(playerLevel: number): Monster {
     monster.level,
   )
   monster.currentHp = monster.stats.hp
+  monster.equippedMoveIds = randomEnemyMoves(monster.id)
   return monster
 }
 
@@ -207,6 +251,47 @@ export function getCollectionPower(collection: Monster[]): number {
     0,
   )
   return Math.round(total / collection.length / 4)
+}
+
+export function canEquipMove(
+  monster: Monster,
+  moveId: string,
+  ownedMoveIds: string[],
+): boolean {
+  if (!ownedMoveIds.includes(moveId)) return false
+  if (!canSpeciesLearn(monster.id, moveId)) return false
+  if (monster.equippedMoveIds.includes(moveId)) return false
+  if (monster.equippedMoveIds.length >= MAX_EQUIPPED_MOVES) return false
+  return true
+}
+
+export function equipMoveOnMonster(monster: Monster, moveId: string): Monster {
+  if (monster.equippedMoveIds.includes(moveId)) return monster
+  return {
+    ...monster,
+    equippedMoveIds: [...monster.equippedMoveIds, moveId].slice(0, MAX_EQUIPPED_MOVES),
+  }
+}
+
+export function unequipMoveFromMonster(monster: Monster, moveId: string): Monster {
+  return {
+    ...monster,
+    equippedMoveIds: monster.equippedMoveIds.filter((id) => id !== moveId),
+  }
+}
+
+export function getBattleMoves(monster: Monster): Move[] {
+  return monster.equippedMoveIds
+    .map((id) => getMoveById(id))
+    .filter((m): m is Move => m !== undefined)
+}
+
+export function pickEnemyMove(monster: Monster): string {
+  const equipped = monster.equippedMoveIds
+  if (equipped.length > 0 && Math.random() < 0.7) {
+    return equipped[Math.floor(Math.random() * equipped.length)]
+  }
+  return BASIC_ATTACK_ID
 }
 
 export function formatRelativeTime(timestamp: number): string {

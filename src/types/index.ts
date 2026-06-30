@@ -9,7 +9,6 @@ export interface MonsterSpecies {
   name: string
   element: ElementType
   rarity: Rarity
-  emoji: string
   description: string
   baseStats: Stats
 }
@@ -21,12 +20,22 @@ export interface Stats {
   spd: number
 }
 
+export interface Move {
+  id: string
+  name: string
+  element: ElementType
+  power: number
+  description: string
+  cost: number
+}
+
 export interface Monster extends MonsterSpecies {
   instanceId: string
   level: number
   currentHp: number
   stats: Stats
   acquiredAt: number
+  equippedMoveIds: string[]
 }
 
 export interface Workout {
@@ -38,13 +47,16 @@ export interface Workout {
   notes?: string
   completedAt: number
   rollsEarned: number
+  pointsEarned: number
 }
 
 export interface BattleLogEntry {
   turn: number
   message: string
-  type: 'info' | 'damage' | 'heal' | 'victory' | 'defeat'
+  type: 'info' | 'damage' | 'heal' | 'victory' | 'defeat' | 'super-effective' | 'not-effective'
 }
+
+export type BattlePhase = 'select' | 'player-attack' | 'enemy-attack' | 'message' | 'ended'
 
 export interface BattleState {
   playerMonster: Monster
@@ -54,6 +66,11 @@ export interface BattleState {
   isPlayerTurn: boolean
   status: 'active' | 'won' | 'lost'
   playerDefending: boolean
+  phase: BattlePhase
+  message: string
+  playerShaking: boolean
+  enemyShaking: boolean
+  showMoveMenu: boolean
 }
 
 export interface PlayerProfile {
@@ -63,6 +80,8 @@ export interface PlayerProfile {
   battlesWon: number
   battlesLost: number
   xp: number
+  movePoints: number
+  ownedMoveIds: string[]
 }
 
 export interface AppState {
@@ -74,6 +93,8 @@ export interface AppState {
 
 export const MERGE_REQUIRED = 3
 export const MAX_LEVEL = 10
+export const MAX_EQUIPPED_MOVES = 3
+export const BASIC_ATTACK_ID = 'basic-attack'
 
 export const ELEMENT_COLORS: Record<ElementType, string> = {
   fire: '#f97316',

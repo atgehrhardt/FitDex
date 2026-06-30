@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { WorkoutType } from '../types'
 import { WORKOUT_EMOJI, WORKOUT_LABELS } from '../types'
-import { calculateRolls } from '../utils/gameLogic'
+import { calculateMovePoints, calculateRolls } from '../utils/gameLogic'
 import { useFitDexStore } from '../store/useFitDexStore'
 
 const WORKOUT_TYPES: WorkoutType[] = ['cardio', 'strength', 'flexibility', 'hiit', 'sports']
@@ -13,15 +13,16 @@ export function WorkoutForm() {
   const [duration, setDuration] = useState(30)
   const [intensity, setIntensity] = useState<1 | 2 | 3 | 4 | 5>(3)
   const [notes, setNotes] = useState('')
-  const [lastResult, setLastResult] = useState<{ rolls: number; workoutName: string } | null>(null)
+  const [lastResult, setLastResult] = useState<{ rolls: number; points: number; workoutName: string } | null>(null)
 
   const previewRolls = calculateRolls(type, duration, intensity)
+  const previewPoints = calculateMovePoints(type, duration, intensity)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const workoutName = name.trim() || `${WORKOUT_LABELS[type]} Session`
     const workout = logWorkout(type, workoutName, duration, intensity, notes.trim() || undefined)
-    setLastResult({ rolls: workout.rollsEarned, workoutName })
+    setLastResult({ rolls: workout.rollsEarned, points: workout.pointsEarned, workoutName })
     setName('')
     setNotes('')
   }
@@ -31,7 +32,7 @@ export function WorkoutForm() {
       <div>
         <h2 className="text-2xl font-bold text-white">Log Workout</h2>
         <p className="text-slate-400 mt-1">
-          Complete workouts to earn monster rolls. Harder sessions = better odds.
+          Complete workouts to earn monster rolls and move points. Harder sessions = better odds.
         </p>
       </div>
 
@@ -115,7 +116,7 @@ export function WorkoutForm() {
             ))}
           </div>
           <p className="text-xs text-slate-500 mt-2">
-            Higher intensity improves roll count and rare monster odds.
+            Higher intensity improves roll count, move points, and rare monster odds.
           </p>
         </div>
 
@@ -134,9 +135,15 @@ export function WorkoutForm() {
         </div>
 
         <div className="flex items-center justify-between p-4 rounded-xl bg-cyan-400/10 border border-cyan-400/30">
-          <div>
-            <div className="text-sm text-cyan-300 font-medium">Rolls you'll earn</div>
-            <div className="text-3xl font-black text-cyan-400">{previewRolls} 🎲</div>
+          <div className="flex gap-8">
+            <div>
+              <div className="text-sm text-cyan-300 font-medium">Rolls</div>
+              <div className="text-3xl font-black text-cyan-400">{previewRolls}</div>
+            </div>
+            <div>
+              <div className="text-sm text-amber-300 font-medium">Move Points</div>
+              <div className="text-3xl font-black text-amber-400">{previewPoints}</div>
+            </div>
           </div>
           <button
             type="submit"
@@ -150,9 +157,9 @@ export function WorkoutForm() {
       {lastResult && (
         <div className="p-4 rounded-xl bg-success/10 border border-success/30 animate-roll-reveal">
           <p className="text-success font-semibold">
-            🎉 {lastResult.workoutName} logged! +{lastResult.rolls} roll{lastResult.rolls !== 1 ? 's' : ''} ready.
+            {lastResult.workoutName} logged! +{lastResult.rolls} roll{lastResult.rolls !== 1 ? 's' : ''} and +{lastResult.points} move points.
           </p>
-          <p className="text-sm text-slate-400 mt-1">Head to the Roll tab to catch monsters!</p>
+          <p className="text-sm text-slate-400 mt-1">Roll for monsters or buy moves in the Shop tab!</p>
         </div>
       )}
     </div>

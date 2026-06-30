@@ -64,7 +64,7 @@ export function MergeScreen() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-bold text-white text-lg">
-                    {group.monsters[0].emoji} {group.monsters[0].name}{' '}
+                    {group.monsters[0].name}{' '}
                     <span className="text-slate-400 font-normal">Lv.{group.level}</span>
                   </h3>
                   <p className="text-sm text-slate-400">

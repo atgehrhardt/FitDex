@@ -3,6 +3,7 @@ import type { ElementType, Rarity } from '../types'
 import { ELEMENT_COLORS, RARITY_COLORS } from '../types'
 import { useFitDexStore } from '../store/useFitDexStore'
 import { MonsterCard } from './MonsterCard'
+import { MoveLoadoutPanel } from './MoveShopScreen'
 
 type SortKey = 'recent' | 'level' | 'rarity' | 'name'
 
@@ -110,8 +111,13 @@ export function CollectionScreen() {
             ))}
           </div>
 
-          {selectedId && (
-            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
+          {selectedId && (() => {
+            const selected = collection.find((m) => m.instanceId === selectedId)
+            if (!selected) return null
+            return (
+            <div className="space-y-4">
+              <MoveLoadoutPanel monster={selected} />
+              <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
               <button
                 type="button"
                 onClick={() => {
@@ -124,8 +130,10 @@ export function CollectionScreen() {
               >
                 Release Selected
               </button>
+              </div>
             </div>
-          )}
+            )
+          })()}
         </>
       )}
     </div>
