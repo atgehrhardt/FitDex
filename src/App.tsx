@@ -1,10 +1,14 @@
 import { useState } from 'react'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { AuthScreen } from './components/AuthScreen'
+import { AccountMenu, SyncIndicator } from './components/AccountMenu'
 import { Dashboard } from './components/Dashboard'
 import { WorkoutForm } from './components/WorkoutForm'
 import { RollScreen } from './components/RollScreen'
 import { CollectionScreen } from './components/CollectionScreen'
 import { MergeScreen } from './components/MergeScreen'
 import { BattleScreen } from './components/BattleScreen'
+import { useGameSync } from './hooks/useGameSync'
 import { useFitDexStore } from './store/useFitDexStore'
 
 type Tab = 'home' | 'workout' | 'roll' | 'collection' | 'merge' | 'battle'
@@ -18,10 +22,31 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'battle', label: 'Battle', icon: '⚔️' },
 ]
 
-export default function App() {
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-5xl animate-float mb-4">💪</div>
+        <p className="text-slate-400">Loading...</p>
+      </div>
+    </div>
+  )
+}
+
+function AppGate() {
+  const { user, loading, configured } = useAuth()
+
+  if (configured && loading) return <LoadingScreen />
+  if (configured && !user) return <AuthScreen />
+
+  return <MainApp requireAuth={configured} />
+}
+
+function MainApp({ requireAuth }: { requireAuth: boolean }) {
   const [tab, setTab] = useState<Tab>('home')
   const pendingRolls = useFitDexStore((s) => s.pendingRolls)
   const resetGame = useFitDexStore((s) => s.resetGame)
+  const { syncStatus, syncError } = useGameSync()
 
   const renderTab = () => {
     switch (tab) {
@@ -37,26 +62,43 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-surface/80 border-b border-slate-800">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">💪</span>
-            <div>
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-3xl shrink-0">💪</span>
+            <div className="min-w-0">
               <h1 className="text-xl font-black text-white tracking-tight">FitDex</h1>
-              <p className="text-[10px] text-cyan-400 font-semibold uppercase tracking-widest">
-                Workout Monster Collector
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] text-cyan-400 font-semibold uppercase tracking-widest">
+                  Workout Monster Collector
+                </p>
+                {requireAuth && <SyncIndicator status={syncStatus} error={syncError} />}
+              </div>
             </div>
           </div>
-          {pendingRolls > 0 && (
-            <div className="px-3 py-1.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-sm font-bold animate-pulse">
-              {pendingRolls} roll{pendingRolls !== 1 ? 's' : ''} ready
-            </div>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {pendingRolls > 0 && (
+              <div className="px-3 py-1.5 rounded-full bg-purple-500/20 border border-purple-400/40 text-purple-300 text-sm font-bold animate-pulse">
+                {pendingRolls} roll{pendingRolls !== 1 ? 's' : ''}
+              </div>
+            )}
+            {requireAuth && <AccountMenu />}
+          </div>
         </div>
       </header>
 
+      {!requireAuth && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-center text-xs text-amber-200">
+          Local-only mode — configure Supabase for secure cloud accounts (see README).
+        </div>
+      )}
+
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6 pb-28">
-        {renderTab()}
+        {syncStatus === 'loading' && requireAuth ? (
+          <div className="py-20 text-center">
+            <div className="text-4xl animate-float mb-3">💪</div>
+            <p className="text-slate-400">Loading your cloud save...</p>
+          </div>
+        ) : renderTab()}
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40 backdrop-blur-xl bg-surface/90 border-t border-slate-800">
@@ -99,5 +141,13 @@ export default function App() {
         </button>
       </footer>
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppGate />
+    </AuthProvider>
   )
 }

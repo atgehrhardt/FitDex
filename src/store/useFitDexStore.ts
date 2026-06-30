@@ -16,6 +16,8 @@ import { MONSTER_SPECIES } from '../data/monsters'
 interface FitDexStore extends AppState {
   battle: BattleState | null
 
+  hydrateFromCloud: (state: Pick<AppState, 'profile' | 'workouts' | 'collection' | 'pendingRolls'>) => void
+  getPersistedSlice: () => Pick<AppState, 'profile' | 'workouts' | 'collection' | 'pendingRolls'>
   logWorkout: (
     type: WorkoutType,
     name: string,
@@ -31,6 +33,7 @@ interface FitDexStore extends AppState {
   battleAction: (action: 'attack' | 'defend' | 'special') => void
   endBattle: () => void
   resetGame: () => void
+  clearForSignOut: () => void
 }
 
 const initialProfile = {
@@ -105,6 +108,21 @@ export const useFitDexStore = create<FitDexStore>()(
   persist(
     (set, get) => ({
       ...initialState,
+
+      hydrateFromCloud: (state) => {
+        set({
+          profile: state.profile,
+          workouts: state.workouts,
+          collection: state.collection,
+          pendingRolls: state.pendingRolls,
+          battle: null,
+        })
+      },
+
+      getPersistedSlice: () => {
+        const { profile, workouts, collection, pendingRolls } = get()
+        return { profile, workouts, collection, pendingRolls }
+      },
 
       logWorkout: (type, name, durationMinutes, intensity, notes) => {
         const workout = createWorkout(type, name, durationMinutes, intensity, notes)
@@ -292,6 +310,11 @@ export const useFitDexStore = create<FitDexStore>()(
       endBattle: () => set({ battle: null }),
 
       resetGame: () => set({ ...initialState, battle: null }),
+
+      clearForSignOut: () => {
+        set({ ...initialState, battle: null })
+        localStorage.removeItem('fitdex-storage')
+      },
     }),
     {
       name: 'fitdex-storage',
